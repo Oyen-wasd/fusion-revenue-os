@@ -49,7 +49,7 @@ with st.sidebar:
     breakeven_roas = st.slider("Breakeven ROAS", 1.0, 5.0, 2.5, 0.1)
     scale_threshold = st.slider("Scale Threshold ROAS", 3.0, 20.0, 8.0, 0.5)
     st.divider()
-    st.markdown("**Built by:** Mohamad Azraei")
+    st.markdown("**Built by:** AD Satiman")
     st.markdown("**Stack:** Python + Streamlit + Plotly")
     st.markdown("**Tier:** Cloud-Native | Zero Infrastructure Cost")
 
@@ -520,4 +520,4 @@ with tab3:
 # FOOTER
 # ============================================
 st.divider()
-st.caption("Fusion Revenue OS v0.1 | Built by Mohamad Azraei | POC for Round 2 Interview | 6-Agent ROS Roadmap Available")
+st.caption("Fusion Revenue OS v0.1 | Built by AD Satiman | POC for Round 2 Interview | 6-Agent ROS Roadmap Available")
