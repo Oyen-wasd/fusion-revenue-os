@@ -89,7 +89,7 @@ def call_gemini(prompt: str) -> dict:
     if not GEMINI_READY:
         return {"error": "Gemini API key not configured."}
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         response = model.generate_content(prompt)
         raw = response.text.strip()
         if raw.startswith('```json'):
