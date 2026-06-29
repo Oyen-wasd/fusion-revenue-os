@@ -85,24 +85,11 @@ if GEMINI_AVAILABLE:
 else:
     GEMINI_READY = False
 
-# TEMPORARY: List available Gemini models
-if GEMINI_READY:
-    with st.sidebar:
-        st.divider()
-        if st.button("🔍 List Available Gemini Models"):
-            try:
-                models = genai.list_models()
-                st.write("### Your API can access these models:")
-                for m in models:
-                    st.write(f"- `{m.name}` (supports: {m.supported_generation_methods})")
-            except Exception as e:
-                st.error(f"Could not list models: {e}")
-
 def call_gemini(prompt: str) -> dict:
     if not GEMINI_READY:
         return {"error": "Gemini API key not configured."}
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash-001')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         raw = response.text.strip()
         if raw.startswith('```json'):
