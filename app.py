@@ -86,6 +86,7 @@ else:
     GEMINI_READY = False
 
 def call_gemini(prompt: str) -> dict:
+    """Call Gemini and parse JSON response. Returns dict."""
     if not GEMINI_READY:
         return {"error": "Gemini API key not configured."}
     try:
@@ -99,6 +100,17 @@ def call_gemini(prompt: str) -> dict:
         return json.loads(raw)
     except Exception as e:
         return {"error": str(e), "raw_output": raw if 'raw' in locals() else ""}
+
+def call_gemini_text(prompt: str) -> str:
+    """Call Gemini and return the raw text response (no JSON parsing)."""
+    if not GEMINI_READY:
+        return "Gemini API key not configured."
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        return f"AI Error: {str(e)}"
 
 # ============================================
 # TABS
@@ -571,7 +583,7 @@ Return JSON:
         st.info("Click the button to run AI diagnostics.")
 
 # ============================================
-# TAB 5: CEO BRIEFING
+# TAB 5: CEO BRIEFING (AI Text Fixed)
 # ============================================
 with tab5:
     st.header("📱 Daily CEO Briefing")
@@ -589,7 +601,7 @@ with tab5:
     
     use_ai_briefing = st.checkbox("✨ Use AI to generate briefing (recommended)", value=GEMINI_READY)
     
-    # Build static briefing (always available as fallback)
+    # Build static briefing
     briefing_lines = []
     briefing_lines.append("FUSION REVENUE OS — DAILY BRIEFING")
     briefing_lines.append(f"Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}")
@@ -635,7 +647,6 @@ with tab5:
     
     # Generate AI briefing if requested
     if use_ai_briefing and GEMINI_READY:
-        # Build prompt for Gemini
         winners_list = goldmines.head(3)[['campaign_name', 'ROAS']].to_dict('records') if len(goldmines) > 0 else []
         guardian_actions = []
         for _, row in df.iterrows():
@@ -662,33 +673,25 @@ Spend RM... | Rev RM... | ROAS ...x
 👉 Key actions: ...
 End with "Reply STOP/SCALE to approve."
 """
-        ai_brief = call_gemini(prompt)
+        ai_brief_text = call_gemini_text(prompt)
         
-        # Check for errors and show result
-        if 'error' in ai_brief:
-            st.error(f"AI Error: {ai_brief['error']}")
-            if 'raw_output' in ai_brief:
-                with st.expander("Raw AI output"):
-                    st.text(ai_brief['raw_output'])
-            # Show static briefing as fallback
+        # Show AI briefing if successful, otherwise fallback
+        if ai_brief_text and not ai_brief_text.startswith("AI Error"):
+            st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
+            st.markdown(f"```\n{ai_brief_text}\n```")
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.error(f"AI generation failed: {ai_brief_text}")
             st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
             st.markdown(f"```\n{static_briefing}\n```")
             st.markdown('</div>', unsafe_allow_html=True)
-        else:
-            # Show AI briefing
-            st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
-            raw_text = ai_brief.get('raw_output', json.dumps(ai_brief))
-            if 'text' in ai_brief:
-                raw_text = ai_brief['text']
-            st.markdown(f"```\n{raw_text.strip()}\n```")
-            st.markdown('</div>', unsafe_allow_html=True)
     else:
-        # No AI – show static briefing
+        # Show static briefing
         st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
         st.markdown(f"```\n{static_briefing}\n```")
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # WhatsApp preview (always show)
+    # WhatsApp preview
     st.subheader("💬 WhatsApp Business API Preview")
     w1, w2 = st.columns([1, 3])
     with w1:
@@ -705,6 +708,7 @@ End with "Reply STOP/SCALE to approve."
         
         *Tap to view full report →*
         """)
+
 # ============================================
 # FOOTER
 # ============================================
