@@ -475,15 +475,14 @@ with tab3:
         else:
             return 'background-color: #e0e7ff; color: #3730a3; font-weight: bold'
     
-    styled_df = guardian_df[['campaign_name', 'brand', 'platform', 'ROAS', 'spend_rm', 'Action', 'Reason']].style
-try:
-    # newer pandas
-    styled_df = styled_df.map(color_action, subset=['Action'])
-except AttributeError:
-    # older pandas (fallback)
-    styled_df = styled_df.applymap(color_action, subset=['Action'])
-st.dataframe(styled_df, use_container_width=True)
-
+    # Style the dataframe – works on all pandas versions
+    styled = guardian_df[['campaign_name', 'brand', 'platform', 'ROAS', 'spend_rm', 'Action', 'Reason']].style
+    if hasattr(styled, 'map'):
+        styled = styled.map(color_action, subset=['Action'])
+    else:
+        styled = styled.applymap(color_action, subset=['Action'])
+    st.dataframe(styled, use_container_width=True)
+    
     pause_count = len(guardian_df[guardian_df['Action'].str.contains('PAUSE')])
     scale_count = len(guardian_df[guardian_df['Action'] == 'SCALE'])
     st.markdown(f"🛑 **{pause_count}** need pause  |  🚀 **{scale_count}** ready to scale")
