@@ -667,14 +667,24 @@ End with "Reply STOP/SCALE to approve."
     
     static_briefing = "\n".join(briefing_lines)
     
-    if use_ai_briefing and GEMINI_READY and 'error' not in ai_brief:
-        st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
-        raw_text = ai_brief.get('raw_output', json.dumps(ai_brief))
-        if 'text' in ai_brief:
-            raw_text = ai_brief['text']
-        st.markdown(f"```\n{raw_text.strip()}\n```")
-        st.markdown('</div>', unsafe_allow_html=True)
+        if use_ai_briefing and GEMINI_READY:
+        if 'error' in ai_brief:
+            st.error(f"AI Error: {ai_brief['error']}")
+            if 'raw_output' in ai_brief:
+                st.text("Raw output: " + str(ai_brief['raw_output']))
+            # Fallback to static briefing
+            st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
+            st.markdown(f"```\n{static_briefing}\n```")
+            st.markdown('</div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
+            raw_text = ai_brief.get('raw_output', json.dumps(ai_brief))
+            if 'text' in ai_brief:
+                raw_text = ai_brief['text']
+            st.markdown(f"```\n{raw_text.strip()}\n```")
+            st.markdown('</div>', unsafe_allow_html=True)
     else:
+        # AI not selected or not ready, show static
         st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
         st.markdown(f"```\n{static_briefing}\n```")
         st.markdown('</div>', unsafe_allow_html=True)
