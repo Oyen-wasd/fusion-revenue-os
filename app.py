@@ -589,40 +589,7 @@ with tab5:
     
     use_ai_briefing = st.checkbox("✨ Use AI to generate briefing (recommended)", value=GEMINI_READY)
     
-    if use_ai_briefing and GEMINI_READY:
-        winners_list = goldmines.head(3)[['campaign_name', 'ROAS']].to_dict('records') if len(goldmines) > 0 else []
-        losers_list = bleeding.head(3)[['campaign_name', 'ROAS']].to_dict('records') if len(bleeding) > 0 else []
-        guardian_actions = []
-        for _, row in df.iterrows():
-            if pd.isna(row['ROAS']):
-                continue
-            if row['ROAS'] < breakeven_roas:
-                guardian_actions.append(f"STOP {row['campaign_name']}")
-            elif row['ROAS'] >= 8:
-                guardian_actions.append(f"SCALE {row['campaign_name']}")
-        prompt = f"""
-You are the CEO briefing agent for Fusion Cosmetics. Summarize yesterday's performance in a WhatsApp‑style message with emojis.
-
-Total spend: RM{today_spend:.0f}
-Revenue: RM{today_rev:.0f}
-Blended ROAS: {today_roas:.1f}x
-Top campaigns: {winners_list}
-Urgent: {len(bleeding)} campaigns below {breakeven_roas}x breakeven
-Recommended actions: {', '.join(guardian_actions[:4])}
-
-Format:
-📊 *Fusion Daily Briefing*
-Spend RM... | Rev RM... | ROAS ...x
-🚨 ... alerts • 🏆 ... winners
-👉 Key actions: ...
-End with "Reply STOP/SCALE to approve."
-"""
-        ai_brief = call_gemini(prompt)
-        if 'error' in ai_brief:
-            st.warning("AI generation failed, showing static briefing.")
-            use_ai_briefing = False
-    
-    # Build static briefing
+    # Build static briefing (always available as fallback)
     briefing_lines = []
     briefing_lines.append("FUSION REVENUE OS — DAILY BRIEFING")
     briefing_lines.append(f"Generated: {pd.Timestamp.now().strftime('%Y-%m-%d %H:%M')}")
@@ -664,19 +631,51 @@ End with "Reply STOP/SCALE to approve."
     briefing_lines.append("=======================================")
     briefing_lines.append("Reply STOP [ID] to pause campaign")
     briefing_lines.append("Reply SCALE [ID] to increase budget 30%")
-    
     static_briefing = "\n".join(briefing_lines)
     
-        if use_ai_briefing and GEMINI_READY:
+    # Generate AI briefing if requested
+    if use_ai_briefing and GEMINI_READY:
+        # Build prompt for Gemini
+        winners_list = goldmines.head(3)[['campaign_name', 'ROAS']].to_dict('records') if len(goldmines) > 0 else []
+        guardian_actions = []
+        for _, row in df.iterrows():
+            if pd.isna(row['ROAS']):
+                continue
+            if row['ROAS'] < breakeven_roas:
+                guardian_actions.append(f"STOP {row['campaign_name']}")
+            elif row['ROAS'] >= 8:
+                guardian_actions.append(f"SCALE {row['campaign_name']}")
+        prompt = f"""
+You are the CEO briefing agent for Fusion Cosmetics. Summarize yesterday's performance in a WhatsApp‑style message with emojis.
+
+Total spend: RM{today_spend:.0f}
+Revenue: RM{today_rev:.0f}
+Blended ROAS: {today_roas:.1f}x
+Top campaigns: {winners_list}
+Urgent: {len(bleeding)} campaigns below {breakeven_roas}x breakeven
+Recommended actions: {', '.join(guardian_actions[:4])}
+
+Format exactly like this:
+📊 *Fusion Daily Briefing*
+Spend RM... | Rev RM... | ROAS ...x
+🚨 ... alerts • 🏆 ... winners
+👉 Key actions: ...
+End with "Reply STOP/SCALE to approve."
+"""
+        ai_brief = call_gemini(prompt)
+        
+        # Check for errors and show result
         if 'error' in ai_brief:
             st.error(f"AI Error: {ai_brief['error']}")
             if 'raw_output' in ai_brief:
-                st.text("Raw output: " + str(ai_brief['raw_output']))
-            # Fallback to static briefing
+                with st.expander("Raw AI output"):
+                    st.text(ai_brief['raw_output'])
+            # Show static briefing as fallback
             st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
             st.markdown(f"```\n{static_briefing}\n```")
             st.markdown('</div>', unsafe_allow_html=True)
         else:
+            # Show AI briefing
             st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
             raw_text = ai_brief.get('raw_output', json.dumps(ai_brief))
             if 'text' in ai_brief:
@@ -684,12 +683,12 @@ End with "Reply STOP/SCALE to approve."
             st.markdown(f"```\n{raw_text.strip()}\n```")
             st.markdown('</div>', unsafe_allow_html=True)
     else:
-        # AI not selected or not ready, show static
+        # No AI – show static briefing
         st.markdown('<div class="ceo-brief">', unsafe_allow_html=True)
         st.markdown(f"```\n{static_briefing}\n```")
         st.markdown('</div>', unsafe_allow_html=True)
     
-    # WhatsApp preview
+    # WhatsApp preview (always show)
     st.subheader("💬 WhatsApp Business API Preview")
     w1, w2 = st.columns([1, 3])
     with w1:
@@ -706,7 +705,6 @@ End with "Reply STOP/SCALE to approve."
         
         *Tap to view full report →*
         """)
-
 # ============================================
 # FOOTER
 # ============================================
